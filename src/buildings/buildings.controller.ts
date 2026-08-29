@@ -1,15 +1,24 @@
-import { Controller, Get, Post } from '@nestjs/common';
+import { Controller, Get, Post, Body, Param } from '@nestjs/common';
+import { BuildingsService } from './buildings.service';
+import { CreateBuildingDto } from './dto/create-building.dto';
+import { Building } from './entities/building.entity';
 
 @Controller('buildings')
 export class BuildingsController {
+  constructor(private readonly buildingsService: BuildingsService) {}
 
-    @Get()
-    getApiState() : string{
-        return "api disponible."
-    }
+  @Get()
+  findAll(): Building[] {
+    return this.buildingsService.findAll();
+  }
 
-    @Post()
-    createResource(){
-        return "ressource crée."
-    }
+  @Get(':id')
+  findOne(@Param('id') id: string): Building {
+    return this.buildingsService.findOne(id);
+  }
+
+  @Post()
+  create(@Body() dto: CreateBuildingDto): Building {
+    return this.buildingsService.create(dto);
+  }
 }
