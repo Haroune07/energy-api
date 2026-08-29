@@ -1,13 +1,18 @@
 import { NestFactory } from '@nestjs/core';
+import { VersioningType } from '@nestjs/common';
 import { AppModule } from './app.module';
-import { log } from 'console';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
-  app.setGlobalPrefix("/api")
-  const port = 3000
-  await app.listen(process.env.PORT ?? port);
-  console.log(`App running at : http://localhost:${port}`);
   
+  app.setGlobalPrefix('api');
+  app.enableVersioning({
+    type: VersioningType.URI,
+    defaultVersion: '1',
+  });
+  
+  const port = process.env.PORT ?? 3000;
+  await app.listen(port);
+  console.log(`L'application tourne sur : http://localhost:${port}/api/v1`);
 }
 bootstrap();

@@ -7,6 +7,7 @@ export class HealthController {
   getApiState() {
     return {
       status: 'ok',
+      service: 'energy-api',
       timestamp: new Date().toISOString(),
     };
   }
