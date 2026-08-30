@@ -57,7 +57,6 @@ describe('AppController (e2e)', () => {
     });
 
     it('GET /api/v1/buildings/:id should return building by ID', async () => {
-      // First create a building
       const postRes = await request(app.getHttpServer())
         .post('/api/v1/buildings')
         .send({
@@ -67,7 +66,6 @@ describe('AppController (e2e)', () => {
 
       const createdId = postRes.body.id;
 
-      // Then fetch it
       return request(app.getHttpServer())
         .get(`/api/v1/buildings/${createdId}`)
         .expect(200)
@@ -82,6 +80,102 @@ describe('AppController (e2e)', () => {
     it('GET /api/v1/buildings/unknown should return 404', () => {
       return request(app.getHttpServer())
         .get('/api/v1/buildings/bld-999')
+        .expect(404);
+    });
+  });
+
+  describe('Rooms Resource (e2e)', () => {
+    it('GET /api/v1/buildings/bld-999/rooms should return 404 if building does not exist', () => {
+      return request(app.getHttpServer())
+        .get('/api/v1/buildings/bld-999/rooms')
+        .expect(404);
+    });
+
+    it('POST /api/v1/buildings/:buildingId/rooms should create a room for an existing building', async () => {
+      // First create a building
+      const buildingRes = await request(app.getHttpServer())
+        .post('/api/v1/buildings')
+        .send({ name: 'Pavillon A', city: 'Montréal' });
+
+      const bldId = buildingRes.body.id;
+
+      // Add a room
+      const roomRes = await request(app.getHttpServer())
+        .post(`/api/v1/buildings/${bldId}/rooms`)
+        .send({
+          code: 'A-204',
+          floor: 2,
+          type: 'laboratoire',
+          capacity: 30,
+        })
+        .expect(201);
+
+      expect(roomRes.body).toHaveProperty('id', 'rom-001');
+      expect(roomRes.body).toHaveProperty('buildingId', bldId);
+      expect(roomRes.body).toHaveProperty('code', 'A-204');
+    });
+
+    it('POST /api/v1/buildings/:buildingId/rooms should return 409 Conflict on duplicate room code', async () => {
+      const buildingRes = await request(app.getHttpServer())
+        .post('/api/v1/buildings')
+        .send({ name: 'Pavillon B', city: 'Laval' });
+
+      const bldId = buildingRes.body.id;
+
+      await request(app.getHttpServer())
+        .post(`/api/v1/buildings/${bldId}/rooms`)
+        .send({ code: 'B-101', floor: 1, type: 'bureau', capacity: 12 })
+        .expect(201);
+
+      // Duplicate code
+      await request(app.getHttpServer())
+        .post(`/api/v1/buildings/${bldId}/rooms`)
+        .send({ code: 'B-101', floor: 1, type: 'bureau', capacity: 12 })
+        .expect(409);
+    });
+
+    it('GET /api/v1/rooms/:id should return details of a room', async () => {
+      const buildingRes = await request(app.getHttpServer())
+        .post('/api/v1/buildings')
+        .send({ name: 'Pavillon C', city: 'Montréal' });
+
+      const bldId = buildingRes.body.id;
+
+      const roomRes = await request(app.getHttpServer())
+        .post(`/api/v1/buildings/${bldId}/rooms`)
+        .send({ code: 'C-300', floor: 3, type: 'salle_de_classe', capacity: 40 });
+
+      const roomId = roomRes.body.id;
+
+      return request(app.getHttpServer())
+        .get(`/api/v1/rooms/${roomId}`)
+        .expect(200)
+        .expect((res) => {
+          expect(res.body).toHaveProperty('id', roomId);
+          expect(res.body).toHaveProperty('code', 'C-300');
+        });
+    });
+
+    it('DELETE /api/v1/rooms/:id should delete a room', async () => {
+      const buildingRes = await request(app.getHttpServer())
+        .post('/api/v1/buildings')
+        .send({ name: 'Pavillon D', city: 'Montréal' });
+
+      const bldId = buildingRes.body.id;
+
+      const roomRes = await request(app.getHttpServer())
+        .post(`/api/v1/buildings/${bldId}/rooms`)
+        .send({ code: 'D-101', floor: 1, type: 'bureau', capacity: 5 });
+
+      const roomId = roomRes.body.id;
+
+      await request(app.getHttpServer())
+        .delete(`/api/v1/rooms/${roomId}`)
+        .expect(200);
+
+      // Confirm it's gone
+      await request(app.getHttpServer())
+        .get(`/api/v1/rooms/${roomId}`)
         .expect(404);
     });
   });
